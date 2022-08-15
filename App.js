@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	StyleSheet,
 	Text,
@@ -9,6 +9,8 @@ import {
 	ScrollView,
 	Alert,
 } from "react-native";
+import { Fontisto } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function App() {
 	const [working, setWorking] = useState(true);
@@ -21,14 +23,41 @@ export default function App() {
 		setText(payload);
 	};
 
-	const addToDo = () => {
+	const addToDo = async () => {
 		if (text === "") return;
-		const newToDo = { todo: text, type: working };
-		setToDos((previousToDos) => [...previousToDos, newToDo]);
+		const newToDos = { ...toDos, [Date.now()]: { todo: text, type: working } };
+		setToDos(newToDos);
+		await AsyncStorage.setItem("@toDos", JSON.stringify(newToDos));
 		setText("");
 	};
 
-	console.log(toDos);
+	const loadToDos = async () => {
+		const value = await AsyncStorage.getItem("@toDos");
+		console.log(JSON.parse(value));
+		console.log(Object.keys(JSON.parse(value)));
+		setToDos(JSON.parse(value));
+	};
+
+	const deleteToDo = (key) => {
+		console.log(key);
+		Alert.alert("Delete To Do", "Are you sure?", [
+			{ text: "Cancel", style: "cancel" },
+			{
+				text: "I'm sure",
+				onPress: async () => {
+					const newToDos = { ...toDos };
+					delete newToDos[key];
+					setToDos(newToDos);
+					await AsyncStorage.setItem("@toDos", JSON.stringify(newToDos));
+				},
+				style: "destructive",
+			},
+		]);
+	};
+
+	useEffect(() => {
+		loadToDos();
+	}, []);
 
 	return (
 		<View style={styles.container}>
@@ -56,11 +85,13 @@ export default function App() {
 				placeholder={working ? "Add a To Do" : "Where do you want to go?"}
 			/>
 			<ScrollView>
-				{toDos.map((toDo, index) =>
-					toDo.type === working ? (
-						<View key={index} style={styles.todo}>
-							<Text style={styles.todoText}>{toDo.todo}</Text>
-							<Text style={styles.todoText}>호</Text>
+				{Object.keys(toDos).map((key) =>
+					toDos[key].type === working ? (
+						<View key={key} style={styles.todo}>
+							<Text style={styles.todoText}>{toDos[key].todo}</Text>
+							<TouchableOpacity onPress={() => deleteToDo(key)}>
+								<Fontisto name="trash" size={24} color="#D0C9C0" />
+							</TouchableOpacity>
 						</View>
 					) : null
 				)}
