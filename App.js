@@ -12,6 +12,8 @@ import {
 import { Fontisto } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+const STORAGE_KEY = "@toDos";
+
 export default function App() {
 	const [working, setWorking] = useState(true);
 	const [toDos, setToDos] = useState([]);
@@ -23,23 +25,24 @@ export default function App() {
 		setText(payload);
 	};
 
+	const saveToDos = async (newToDos) => {
+		await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newToDos));
+	};
+
 	const addToDo = async () => {
 		if (text === "") return;
 		const newToDos = { ...toDos, [Date.now()]: { todo: text, type: working } };
 		setToDos(newToDos);
-		await AsyncStorage.setItem("@toDos", JSON.stringify(newToDos));
+		await saveToDos(newToDos);
 		setText("");
 	};
 
 	const loadToDos = async () => {
-		const value = await AsyncStorage.getItem("@toDos");
-		console.log(JSON.parse(value));
-		console.log(Object.keys(JSON.parse(value)));
+		const value = await AsyncStorage.getItem(STORAGE_KEY);
 		setToDos(JSON.parse(value));
 	};
 
 	const deleteToDo = (key) => {
-		console.log(key);
 		Alert.alert("Delete To Do", "Are you sure?", [
 			{ text: "Cancel", style: "cancel" },
 			{
@@ -48,7 +51,7 @@ export default function App() {
 					const newToDos = { ...toDos };
 					delete newToDos[key];
 					setToDos(newToDos);
-					await AsyncStorage.setItem("@toDos", JSON.stringify(newToDos));
+					saveToDos(newToDos);
 				},
 				style: "destructive",
 			},
